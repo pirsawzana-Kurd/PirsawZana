@@ -179,6 +179,24 @@ textarea.field { min-height: 84px; resize: vertical; line-height: 1.7; }
 .q { border-top: 6px solid var(--sun); }
 .q h3 { font-size: 23px; }
 .by { display: inline-block; padding: 0 12px; border-radius: 99px; background: var(--soft); }
+/* ---- v3 polish ---- */
+body { background-image: radial-gradient(circle at 12% 0%, #1e8a3f14 0, transparent 40%), radial-gradient(circle at 100% 30%, #f2b70512 0, transparent 35%); background-attachment: fixed; }
+.hero { box-shadow: 0 14px 34px #0e3b2040; position: relative; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 85% 20%, #f2b70533 0, transparent 45%); }
+.hero h1 { font-size: 44px; }
+.panel, .card, .q, .opt { box-shadow: 0 2px 10px #14261b0d; }
+.card { transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #14261b1f; }
+.pill { transition: background .15s ease, border-color .15s ease; }
+.pill:hover { border-color: var(--green); }
+#findT { color: var(--green); }
+#find { font-size: 18px; min-height: 54px; border-color: var(--green); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 0; background: var(--soft); color: var(--fg); border-radius: 99px; padding: 4px 14px; min-height: 36px; font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+.chip:hover { background: var(--ok-bg); box-shadow: inset 0 0 0 1.5px var(--green); }
+#boardBox h2 { color: #b07d00; }
+#hallClear { justify-self: start; align-self: flex-start; font-size: 13px; min-height: 36px; padding: 2px 14px; }
+@media (prefers-reduced-motion: reduce) { .card, .pill { transition: none; } .card:hover { transform: none; } }
 </style>
 
 <div class="app" dir="rtl" lang="ckb">
@@ -207,13 +225,6 @@ textarea.field { min-height: 84px; resize: vertical; line-height: 1.7; }
       <input id="players" class="field" type="text" autocomplete="off" placeholder="ناوەکان بنووسە و بە کۆما جیایان بکەرەوە، بۆ نموونە: هالی، مان">
     </div>
     <div class="count">
-      <span class="label">شێوازی یاری</span>
-      <div class="pills">
-        <button class="pill" id="modeLearn" type="button" aria-pressed="true">فێربوون · بێ سنوور</button>
-        <button class="pill" id="modeTest" type="button" aria-pressed="false">تاقیکردنەوە · ١٥ چرکە</button>
-      </div>
-    </div>
-    <div class="count">
       <span class="label">کات بۆ وەڵامدانەوە</span>
       <div class="pills">
         <button class="pill" id="timeFree" type="button" aria-pressed="true">بێ سنوور (فێربوون)</button>
@@ -222,10 +233,19 @@ textarea.field { min-height: 84px; resize: vertical; line-height: 1.7; }
     </div>
     <section class="panel" aria-labelledby="findT">
       <h2 id="findT">🔎 گەڕان بە وشە</h2>
-      <p>وشەیەک بنووسە، بۆ نموونە «مەردۆخ»، «هەژار» یان «پڕپۆڵە»، و لە هەموو ئەو پرسیارانەی ئەو وشەیەیان تێدایە خۆت تاقی بکەرەوە.</p>
+      <p>ناوی کەسێک، شوێنێک، خواردنێک یان زانستێک بنووسە و لە هەموو ئەو پرسیارانەی ئەو ناوەیان تێدایە خۆت تاقی بکەرەوە. گەڕان لە هەموو ئاستەکاندا دەکرێت.</p>
+      <div class="chips" id="findChips" aria-label="نموونە">
+        <button type="button" class="chip">مەردۆخ</button><button type="button" class="chip">هەژار</button><button type="button" class="chip">سنە</button><button type="button" class="chip">نالی</button><button type="button" class="chip">پڕپۆڵە</button><button type="button" class="chip">ئیبن سینا</button><button type="button" class="chip">ئەورامان</button><button type="button" class="chip">نەورۆز</button>
+      </div>
       <input id="find" class="field" type="search" autocomplete="off" placeholder="وشەیەک بنووسە…" aria-describedby="findMsg">
       <div class="note" id="findMsg" role="status"></div>
       <button class="go" id="findGo" type="button" disabled>تاقی بکەرەوە</button>
+    </section>
+    <section class="panel" id="boardBox" hidden aria-labelledby="boardT">
+      <h2 id="boardT">🏆 تابلۆی خاڵەکان</h2>
+      <p class="credit">خاڵی هەر یاریزانێک کە ناوی نووسیوە، لەم ئامێرەدا کۆ دەکرێتەوە.</p>
+      <div class="board" id="hall"></div>
+      <button class="pill" id="hallClear" type="button">سڕینەوەی تابلۆ</button>
     </section>
     <div class="count">
       <span class="label">ئاستی پرسیارەکان</span>
@@ -9256,6 +9276,24 @@ SECTIONS.forEach((s) => {
   );
 })();
 
+/* ---- ٢٠٢٦-١١-٢٦: مامۆستا هەژار (Claude) ---- */
+(function () {
+  const S = (id) => SECTIONS.find((x) => x.id === id);
+  const Q = (q, a, lv, n) => ({ q, a, by: "Claude", lv, ...(n ? { n } : {}) });
+  S("weje").qs.push(
+    Q("ناوی ڕاستەقینەی مامۆستا هەژار (هەژار موکریانی) چی بوو؟", ["عەبدولڕەحمانی شەرەفکەندی", "عەبدوڵڵا گۆران", "محەمەدئەمینی شێخولئیسلامی", "مەلا محەمەدی کۆیی"], 2, "هەژار نازناوی شیعرییەتی."),
+    Q("مامۆستا هەژار لە کام شار لەدایک بوو؟", ["مەهاباد", "سنە", "بانە", "سەقز"], 1),
+    Q("مامۆستا هەژار لە چ ساڵێکی زایینیدا لەدایک بوو؟", ["١٩٢١", "١٩٠١", "١٩٤١", "١٨٩١"], 2),
+    Q("ژیاننامە (یادداشتەکانی) مامۆستا هەژار ناوی چییە؟", ["چێشتی مجێور", "مەم و زین", "شەرەفنامە", "هەنبانە بۆرینە"], 2),
+    Q("مامۆستا هەژار «مەم و زین»ی ئەحمەدی خانی لە کرمانجییەوە وەرگێڕایە سەر کام زاراوە؟", ["سۆرانی", "هەورامی", "زازاکی", "لوڕی"], 2),
+    Q("مامۆستا هەژار «ڕوبائیاتی خەیام»ی وەرگێڕایە سەر چ زمانێک؟", ["کوردی", "عەرەبی", "تورکی", "ئینگلیزی"], 1),
+    Q("کام کتێبی پزیشکیی ئیبن سینا لەلایەن مامۆستا هەژارەوە وەرگێڕدرا؟", ["قانوون لە پزیشکیدا", "شیفا", "ئیشارات", "نەجات"], 3),
+    Q("فەرهەنگی «هەنبانە بۆرینە» چ جۆرە کتێبێکە؟", ["فەرهەنگی کوردی–فارسی", "دیوانی شیعر", "ڕۆمان", "کتێبی مێژوو"], 1, "نووسەرەکەی مامۆستا هەژارە."),
+    Q("مامۆستا هەژار و مامۆستا هێمن خەڵکی کام ناوچەی کوردستان بوون؟", ["موکریان", "هەورامان", "بادینان", "گەرمیان"], 2),
+    Q("کام لەمانە وەرگێڕانی مامۆستا هەژارە بۆ کوردی؟", ["قورئانی پیرۆز (تەفسیری هەژار)", "ئیلیاد", "شانامە تەنیا", "هاری پۆتەر"], 2)
+  );
+})();
+
 /* ---- safety pass: (1) Kurdistan parts always name the country; (2) topics sensitive where players live are left out ---- */
 (function () {
   const C = { "باکوور": "تورکیا", "باشوور": "عێراق", "ڕۆژهەڵات": "ئێران", "ڕۆژئاوا": "سووریا", "ڕۆژاوا": "سووریا" };
@@ -9418,6 +9456,7 @@ function renderHome() {
   $("cards").innerHTML = SECTIONS.map((s) =>
     `<button class="card" style="--h:${(SECTIONS.indexOf(s) * 47 + 130) % 360}" data-id="${s.id}" aria-pressed="${selected.has(s.id)}"><span class="chk" aria-hidden="true">✓</span><h2>${s.name}</h2><span class="d">${s.desc}</span><span class="meta"><span>${ku(s.qs.filter(inLevel).length)} پرسیار${level ? " · " + LEVELS[level] : " لە بانک"}</span></span></button>`).join("");
   $("levels").querySelectorAll(".pill").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.lv) === level)));
+  renderHall();
   updateStart();
 }
 $("levels").addEventListener("click", (e) => {
@@ -9476,35 +9515,35 @@ const norm = (t) => String(t || "").replace(/[\u200c\u200f\u200e\u064b-\u065f«�
 function findMatches(word) {
   const w = norm(word).trim();
   if (w.length < 2) return [];
-  const out = [];
-  SECTIONS.forEach((sec) => sec.qs.forEach((q) => {
-    if (norm([q.q, (q.a || []).join(" "), q.sub || ""].join(" ")).includes(w)) out.push({ q, sec });
-  }));
+  const skel = (t) => t.replace(/[ەهوۆێیا\s]/g, "");
+  let out = [];
+  const each = (test) => SECTIONS.forEach((sec) => sec.qs.forEach((q) => { if (test(norm([q.q, (q.a || []).join(" "), q.sub || ""].join(" ")))) out.push({ q, sec }); }));
+  each((t) => t.includes(w));
+  if (!out.length && skel(w).length >= 3) { const k = skel(w); each((t) => skel(t).includes(k)); }
   return out;
 }
 function updateFind() {
   const v = $("find").value;
   const all = findMatches(v);
-  const lv = level ? all.filter((m) => m.q.lv === level) : all;
   const b = $("findGo");
   if (norm(v).trim().length < 2) { $("findMsg").textContent = ""; b.disabled = true; b.textContent = "تاقی بکەرەوە"; return; }
   if (!all.length) { $("findMsg").textContent = "هیچ پرسیارێک بەو وشەیە نەدۆزرایەوە."; b.disabled = true; b.textContent = "تاقی بکەرەوە"; return; }
-  $("findMsg").textContent = `${ku(all.length)} پرسیار دۆزرایەوە` + (level ? ` · ${ku(lv.length)} لە ئاستی ${LEVELS[level]}` : "");
+  const c = [1, 2, 3].map((l) => all.filter((m) => m.q.lv === l).length);
+  $("findMsg").textContent = `${ku(all.length)} پرسیار دۆزرایەوە · ئاسان ${ku(c[0])} · مامناوەند ${ku(c[1])} · دژوار ${ku(c[2])}`;
   b.disabled = false;
-  b.textContent = `تاقی بکەرەوە · ${ku(Math.min(FIND_MAX, (lv.length || all.length)))} پرسیار`;
+  b.textContent = `تاقی بکەرەوە · ${ku(Math.min(FIND_MAX, all.length))} پرسیار`;
 }
 function startFind(word) {
   const all = findMatches(word);
   if (!all.length) return;
-  let pool = level ? all.filter((m) => m.q.lv === level) : all;
-  if (!pool.length) pool = all;
-  const qs = shuffle(pool).slice(0, FIND_MAX).map((m) => ({ ...m.q, topic: m.sec.id, topicName: m.sec.name }));
+  const qs = shuffle(all).slice(0, FIND_MAX).map((m) => ({ ...m.q, topic: m.sec.id, topicName: m.sec.name }));
   const ids = [...new Set(qs.map((q) => q.topic))];
   run = { ids, qs, i: 0, p: 0, players: parsePlayers(), locked: false, order: null, find: word };
   show("quiz");
   ask();
 }
 $("find").addEventListener("input", updateFind);
+$("findChips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (!c) return; $("find").value = c.textContent; updateFind(); $("find").focus(); });
 $("find").addEventListener("keydown", (e) => { if (e.key === "Enter" && !$("findGo").disabled) startFind($("find").value); });
 $("findGo").addEventListener("click", () => startFind($("find").value));
 
@@ -9600,8 +9639,27 @@ $("next").addEventListener("click", () => {
 $("quit").addEventListener("click", () => { stopTimer(); renderHome(); show("home"); });
 
 /* ---------- result ---------- */
+function loadHall() { try { return JSON.parse(localStorage.getItem("pz-hall") || "{}"); } catch (e) { return {}; } }
+function renderHall() {
+  const h = loadHall();
+  const rows = Object.entries(h).sort((a, b) => b[1].pts - a[1].pts).slice(0, 10);
+  $("boardBox").hidden = !rows.length;
+  $("hall").innerHTML = rows.map(([n, r], i) => `<div class="row${i === 0 ? " win" : ""}"><span class="who">${ku(i + 1)}. ${esc(n)}</span><span class="pts">${ku(r.pts)} خاڵ · ${ku(r.games)} یاری · باشترین ${ku(r.best)}</span></div>`).join("");
+}
+function saveHall() {
+  const h = loadHall();
+  run.players.forEach((p) => {
+    if (p.name === "تۆ") return;
+    const r = h[p.name] || { pts: 0, games: 0, best: 0 };
+    r.pts += p.score; r.games += 1; r.best = Math.max(r.best, p.score);
+    h[p.name] = r;
+  });
+  try { localStorage.setItem("pz-hall", JSON.stringify(h)); } catch (e) {}
+}
+$("hallClear").addEventListener("click", () => { if (confirm("تابلۆی خاڵەکان بسڕدرێتەوە؟")) { try { localStorage.removeItem("pz-hall"); } catch (e) {} renderHall(); } });
 function finish() {
   stopTimer();
+  saveHall();
   const total = run.qs.length;
   const ranked = run.players.slice().sort((a, b) => b.score - a.score);
   const top = ranked[0].score;
