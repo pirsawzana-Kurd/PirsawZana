@@ -220,6 +220,13 @@ textarea.field { min-height: 84px; resize: vertical; line-height: 1.7; }
         <button class="pill" id="time15" type="button" aria-pressed="false">١٥ چرکە (تاقیکردنەوە)</button>
       </div>
     </div>
+    <section class="panel" aria-labelledby="findT">
+      <h2 id="findT">🔎 گەڕان بە وشە</h2>
+      <p>وشەیەک بنووسە، بۆ نموونە «مەردۆخ»، «هەژار» یان «پڕپۆڵە»، و لە هەموو ئەو پرسیارانەی ئەو وشەیەیان تێدایە خۆت تاقی بکەرەوە.</p>
+      <input id="find" class="field" type="search" autocomplete="off" placeholder="وشەیەک بنووسە…" aria-describedby="findMsg">
+      <div class="note" id="findMsg" role="status"></div>
+      <button class="go" id="findGo" type="button" disabled>تاقی بکەرەوە</button>
+    </section>
     <div class="count">
       <span class="label">ئاستی پرسیارەکان</span>
       <div class="pills" id="levels">
@@ -9418,6 +9425,7 @@ $("levels").addEventListener("click", (e) => {
   level = Number(b.dataset.lv);
   try { localStorage.setItem("pz-level", String(level)); } catch (e2) {}
   renderHome();
+  updateFind();
 });
 function updateStart() {
   const n = selected.size;
@@ -9462,6 +9470,44 @@ function draw(section) {
   }
   return out;
 }
+/* ---------- search by word ---------- */
+const FIND_MAX = 15;
+const norm = (t) => String(t || "").replace(/[\u200c\u200f\u200e\u064b-\u065f«»"'()]/g, "").replace(/ي/g, "ی").replace(/ك/g, "ک").replace(/ە/g, "ە").replace(/\s+/g, " ").toLowerCase();
+function findMatches(word) {
+  const w = norm(word).trim();
+  if (w.length < 2) return [];
+  const out = [];
+  SECTIONS.forEach((sec) => sec.qs.forEach((q) => {
+    if (norm([q.q, (q.a || []).join(" "), q.sub || ""].join(" ")).includes(w)) out.push({ q, sec });
+  }));
+  return out;
+}
+function updateFind() {
+  const v = $("find").value;
+  const all = findMatches(v);
+  const lv = level ? all.filter((m) => m.q.lv === level) : all;
+  const b = $("findGo");
+  if (norm(v).trim().length < 2) { $("findMsg").textContent = ""; b.disabled = true; b.textContent = "تاقی بکەرەوە"; return; }
+  if (!all.length) { $("findMsg").textContent = "هیچ پرسیارێک بەو وشەیە نەدۆزرایەوە."; b.disabled = true; b.textContent = "تاقی بکەرەوە"; return; }
+  $("findMsg").textContent = `${ku(all.length)} پرسیار دۆزرایەوە` + (level ? ` · ${ku(lv.length)} لە ئاستی ${LEVELS[level]}` : "");
+  b.disabled = false;
+  b.textContent = `تاقی بکەرەوە · ${ku(Math.min(FIND_MAX, (lv.length || all.length)))} پرسیار`;
+}
+function startFind(word) {
+  const all = findMatches(word);
+  if (!all.length) return;
+  let pool = level ? all.filter((m) => m.q.lv === level) : all;
+  if (!pool.length) pool = all;
+  const qs = shuffle(pool).slice(0, FIND_MAX).map((m) => ({ ...m.q, topic: m.sec.id, topicName: m.sec.name }));
+  const ids = [...new Set(qs.map((q) => q.topic))];
+  run = { ids, qs, i: 0, p: 0, players: parsePlayers(), locked: false, order: null, find: word };
+  show("quiz");
+  ask();
+}
+$("find").addEventListener("input", updateFind);
+$("find").addEventListener("keydown", (e) => { if (e.key === "Enter" && !$("findGo").disabled) startFind($("find").value); });
+$("findGo").addEventListener("click", () => startFind($("find").value));
+
 function start() {
   const ids = SECTIONS.filter((s) => selected.has(s.id)).map((s) => s.id);
   const qs = ids.flatMap((id) => draw(SECTIONS.find((s) => s.id === id)));
@@ -9582,7 +9628,7 @@ function finish() {
   $("breakdown").innerHTML = by;
   show("result");
 }
-$("again").addEventListener("click", () => { start(); });
+$("again").addEventListener("click", () => { if (run && run.find) startFind(run.find); else start(); });
 $("home2").addEventListener("click", () => { renderHome(); show("home"); });
 
 /* ---------- send a question (builds text to copy; nothing is stored or sent from here) ---------- */
